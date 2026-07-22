@@ -5,79 +5,21 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from config.language import LANGUAGE_OPTIONS
+from config.language import translate
+from config.theme import apply_application_theme
 from services.audit_service import run_customer_audit
 
 
 # ============================================================
-# STREAMLIT PAGE CONFIGURATION
+# PAGE CONFIGURATION
 # ============================================================
 
 st.set_page_config(
-    page_title="Enterprise Security Audit Aggregator",
+    page_title="ESAA",
     page_icon="🛡️",
     layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-
-# ============================================================
-# CUSTOM APPLICATION STYLE
-# ============================================================
-
-st.markdown(
-    """
-    <style>
-        .main-header {
-            padding: 1.4rem 1.6rem;
-            border-radius: 14px;
-            background: linear-gradient(
-                135deg,
-                #0f172a,
-                #1e3a5f
-            );
-            margin-bottom: 1.5rem;
-        }
-
-        .main-header h1 {
-            color: white;
-            margin: 0;
-            font-size: 2rem;
-        }
-
-        .main-header p {
-            color: #cbd5e1;
-            margin-top: 0.5rem;
-            margin-bottom: 0;
-        }
-
-        .section-card {
-            padding: 1.2rem;
-            border: 1px solid rgba(128, 128, 128, 0.25);
-            border-radius: 12px;
-            margin-bottom: 1rem;
-        }
-
-        .small-muted-text {
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-
-        div[data-testid="stMetric"] {
-            border: 1px solid rgba(128, 128, 128, 0.25);
-            padding: 1rem;
-            border-radius: 12px;
-        }
-
-        div[data-testid="stFileUploader"] {
-            border-radius: 12px;
-        }
-
-        .stDownloadButton button {
-            min-height: 3rem;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True
+    initial_sidebar_state="expanded",
 )
 
 
@@ -87,16 +29,19 @@ st.markdown(
 
 def initialize_session_state() -> None:
     """
-    Initialize values that must remain available when
-    Streamlit reruns the application.
+    Initialize application values that must remain available
+    across Streamlit reruns.
     """
 
     default_values = {
+        "language": "en",
+        "language_display": "English",
         "audit_result": None,
         "report_bytes": None,
         "report_filename": None,
         "uploaded_filename": None,
-        "last_error": None
+        "customer_name": "",
+        "last_error": None,
     }
 
     for key, value in default_values.items():
@@ -106,58 +51,62 @@ def initialize_session_state() -> None:
 
 def reset_assessment() -> None:
     """
-    Remove the current assessment from session state.
+    Remove the current assessment while preserving the
+    selected interface language.
     """
 
     st.session_state.audit_result = None
     st.session_state.report_bytes = None
     st.session_state.report_filename = None
     st.session_state.uploaded_filename = None
+    st.session_state.customer_name = ""
     st.session_state.last_error = None
 
 
+def t(key: str, **values: Any) -> str:
+    """
+    Translate a user-interface key using the language stored
+    in Streamlit Session State.
+    """
+
+    return translate(
+        key,
+        st.session_state.get("language", "en"),
+        **values,
+    )
+
+
 # ============================================================
-# GENERIC VALUE HELPERS
+# GENERIC HELPERS
 # ============================================================
 
 def get_value(
     source: Any,
     field_name: str,
-    default_value: Any = None
+    default_value: Any = None,
 ) -> Any:
     """
     Read a value from either a dictionary or an object.
     """
 
     if isinstance(source, dict):
-        return source.get(
-            field_name,
-            default_value
-        )
+        return source.get(field_name, default_value)
 
-    return getattr(
-        source,
-        field_name,
-        default_value
-    )
+    return getattr(source, field_name, default_value)
 
 
 def get_first_available_value(
     source: Any,
     possible_field_names: list[str],
-    default_value: Any = ""
+    default_value: Any = "",
 ) -> Any:
     """
-    Read the first available value from several possible
-    dictionary keys or object attributes.
+    Return the first available non-empty value from a list of
+    possible dictionary keys or object attributes.
     """
 
     for field_name in possible_field_names:
-        value = get_value(
-            source,
-            field_name,
-            None
-        )
+        value = get_value(source, field_name, None)
 
         if value is not None and value != "":
             return value
@@ -165,12 +114,9 @@ def get_first_available_value(
     return default_value
 
 
-def convert_value_for_display(
-    value: Any
-) -> str:
+def convert_value_for_display(value: Any) -> str:
     """
-    Convert lists, dictionaries and other Python values
-    into text suitable for display in a table.
+    Convert Python values into readable table text.
     """
 
     if value is None:
@@ -179,13 +125,7 @@ def convert_value_for_display(
     if isinstance(value, bool):
         return "Yes" if value else "No"
 
-    if isinstance(value, list):
-        return ", ".join(
-            convert_value_for_display(item)
-            for item in value
-        )
-
-    if isinstance(value, tuple):
+    if isinstance(value, (list, tuple, set)):
         return ", ".join(
             convert_value_for_display(item)
             for item in value
@@ -193,24 +133,20 @@ def convert_value_for_display(
 
     if isinstance(value, dict):
         return "; ".join(
-            f"{key}: {convert_value_for_display(item_value)}"
+            (
+                f"{key}: "
+                f"{convert_value_for_display(item_value)}"
+            )
             for key, item_value in value.items()
         )
 
     return str(value)
 
 
-def normalize_status(
-    status: Any
-) -> str:
+def normalize_status(status: Any) -> str:
     """
-    Convert different status formats into a standard value.
-
-    Examples:
-        ComplianceStatus.PASS -> PASS
-        PASSED                -> PASS
-        NON_COMPLIANT         -> FAIL
-        MANUAL_REVIEW         -> MANUAL
+    Normalize status values returned by different audit
+    engines into a common internal status.
     """
 
     if status is None:
@@ -223,7 +159,7 @@ def normalize_status(
 
     status_text = status_text.upper()
 
-    status_aliases = {
+    aliases = {
         "PASSED": "PASS",
         "SUCCESS": "PASS",
         "SUCCESSFUL": "PASS",
@@ -247,18 +183,29 @@ def normalize_status(
 
         "NOT APPLICABLE": "N/A",
         "NOT_APPLICABLE": "N/A",
-        "NA": "N/A"
+        "NA": "N/A",
     }
 
-    return status_aliases.get(
-        status_text,
-        status_text
-    )
+    return aliases.get(status_text, status_text)
 
 
-def determine_operating_system(
-    server_result: Any
-) -> str:
+def translated_status(status: str) -> str:
+    """
+    Return a translated display name for an internal status.
+    """
+
+    status_map = {
+        "PASS": t("pass"),
+        "FAIL": t("fail"),
+        "MANUAL": t("manual"),
+        "N/A": t("not_applicable"),
+        "UNKNOWN": t("unknown"),
+    }
+
+    return status_map.get(status, status)
+
+
+def determine_operating_system(server_result: Any) -> str:
     """
     Determine the operating system from a server result.
     """
@@ -269,31 +216,29 @@ def determine_operating_system(
             "operating_system",
             "os",
             "os_name",
-            "platform"
+            "platform",
+            "distribution",
         ],
-        ""
+        "",
     )
 
-    operating_system = convert_value_for_display(
+    operating_system_text = convert_value_for_display(
         operating_system
     ).strip()
 
-    if operating_system:
-        return operating_system
+    if operating_system_text:
+        return operating_system_text
 
-    # Existing Windows results may be ServerResult objects
-    # without an operating_system field.
     if not isinstance(server_result, dict):
         return "Windows"
 
-    return "Unknown"
+    return t("unknown_value")
 
 
-def determine_os_family(
-    operating_system: str
-) -> str:
+def determine_os_family(operating_system: str) -> str:
     """
-    Convert a detailed OS name into a general OS family.
+    Convert a detailed operating-system value into a general
+    Windows, Linux or Unknown family.
     """
 
     os_text = operating_system.lower()
@@ -309,37 +254,49 @@ def determine_os_family(
         "alma",
         "suse",
         "oracle linux",
-        "amazon linux"
+        "amazon linux",
     ]
 
     if "windows" in os_text:
         return "Windows"
 
-    if any(
-        linux_name in os_text
-        for linux_name in linux_names
-    ):
+    if any(name in os_text for name in linux_names):
         return "Linux"
 
     return "Unknown"
 
 
+def translated_os_family(os_family: str) -> str:
+    """
+    Translate the general operating-system family.
+    """
+
+    if os_family == "Windows":
+        return "Windows"
+
+    if os_family == "Linux":
+        return "Linux"
+
+    return t("unknown_value")
+
+
 # ============================================================
-# SERVER INVENTORY
+# DATA TRANSFORMATION
 # ============================================================
 
 def build_server_inventory_rows(
-    server_results: list
-) -> list[dict]:
+    server_results: list[Any],
+) -> list[dict[str, Any]]:
     """
-    Convert all server results into a common inventory format.
+    Convert all server results into a standard inventory
+    structure.
     """
 
-    rows = []
+    rows: list[dict[str, Any]] = []
 
     for index, server_result in enumerate(
         server_results,
-        start=1
+        start=1,
     ):
         hostname = get_first_available_value(
             server_result,
@@ -347,9 +304,9 @@ def build_server_inventory_rows(
                 "hostname",
                 "computer_name",
                 "server_name",
-                "name"
+                "name",
             ],
-            "Unknown"
+            t("unknown_value"),
         )
 
         operating_system = determine_operating_system(
@@ -367,41 +324,58 @@ def build_server_inventory_rows(
                 "ip_address",
                 "ipv4_addresses",
                 "ipv4_address",
-                "ips"
+                "ips",
             ],
-            []
+            [],
         )
 
         rows.append(
             {
-                "No.": index,
-                "Hostname": convert_value_for_display(
+                "number": index,
+                "hostname": convert_value_for_display(
                     hostname
                 ),
-                "OS Family": os_family,
-                "Operating System": operating_system,
-                "IP Address": convert_value_for_display(
+                "os_family": os_family,
+                "operating_system": operating_system,
+                "ip_address": convert_value_for_display(
                     ip_addresses
-                )
+                ),
             }
         )
 
     return rows
 
 
-# ============================================================
-# REQUIREMENT DETAILS
-# ============================================================
+def get_requirement_collection(
+    server_result: Any,
+) -> Any:
+    """
+    Locate the requirement result collection within a server
+    assessment object.
+    """
+
+    return get_first_available_value(
+        server_result,
+        [
+            "requirements",
+            "requirement_results",
+            "results",
+            "checks",
+            "controls",
+        ],
+        {},
+    )
+
 
 def build_requirement_rows(
-    server_results: list
-) -> list[dict]:
+    server_results: list[Any],
+) -> list[dict[str, Any]]:
     """
-    Convert Windows and Linux requirement results into
-    one common table structure.
+    Convert Windows and Linux assessment results into one
+    standard requirement table structure.
     """
 
-    rows = []
+    rows: list[dict[str, Any]] = []
 
     for server_result in server_results:
         hostname = get_first_available_value(
@@ -410,9 +384,9 @@ def build_requirement_rows(
                 "hostname",
                 "computer_name",
                 "server_name",
-                "name"
+                "name",
             ],
-            "Unknown"
+            t("unknown_value"),
         )
 
         operating_system = determine_operating_system(
@@ -423,168 +397,152 @@ def build_requirement_rows(
             operating_system
         )
 
-        requirements = get_first_available_value(
-            server_result,
-            [
-                "requirements",
-                "requirement_results",
-                "results",
-                "checks",
-                "controls"
-            ],
-            {}
+        requirements = get_requirement_collection(
+            server_result
         )
 
         if isinstance(requirements, dict):
             requirement_items = requirements.items()
-
         elif isinstance(requirements, list):
             requirement_items = enumerate(
                 requirements,
-                start=1
+                start=1,
             )
-
         else:
             continue
 
-        for requirement_key, requirement_result in (
-            requirement_items
-        ):
+        for requirement_key, result in requirement_items:
             requirement_id = get_first_available_value(
-                requirement_result,
+                result,
                 [
                     "requirement_id",
                     "id",
                     "control_id",
                     "check_id",
-                    "rule_id"
+                    "rule_id",
                 ],
-                str(requirement_key)
+                str(requirement_key),
             )
 
             requirement_name = get_first_available_value(
-                requirement_result,
+                result,
                 [
                     "requirement_name",
                     "name",
                     "title",
                     "control_name",
                     "check_name",
-                    "description"
+                    "description",
                 ],
-                str(requirement_key)
+                str(requirement_key),
             )
 
             category = get_first_available_value(
-                requirement_result,
+                result,
                 [
                     "category",
                     "section",
                     "group",
-                    "control_family"
+                    "control_family",
                 ],
-                ""
+                "",
             )
 
-            status = get_first_available_value(
-                requirement_result,
-                [
-                    "status",
-                    "result",
-                    "compliance_status",
-                    "assessment_status"
-                ],
-                "UNKNOWN"
+            status = normalize_status(
+                get_first_available_value(
+                    result,
+                    [
+                        "status",
+                        "result",
+                        "compliance_status",
+                        "assessment_status",
+                    ],
+                    "UNKNOWN",
+                )
             )
 
             expected_value = get_first_available_value(
-                requirement_result,
+                result,
                 [
                     "expected_value",
                     "expected",
                     "required_value",
                     "requirement",
-                    "target_value"
+                    "target_value",
                 ],
-                ""
+                "",
             )
 
             actual_value = get_first_available_value(
-                requirement_result,
+                result,
                 [
                     "actual_value",
                     "actual",
                     "detected_value",
                     "current_value",
                     "value",
-                    "observed_value"
+                    "observed_value",
                 ],
-                ""
+                "",
             )
 
             evidence = get_first_available_value(
-                requirement_result,
+                result,
                 [
                     "evidence",
                     "details",
                     "message",
                     "reason",
                     "observation",
-                    "raw_value"
+                    "raw_value",
                 ],
-                ""
+                "",
             )
 
             recommendation = get_first_available_value(
-                requirement_result,
+                result,
                 [
                     "recommendation",
                     "remediation",
                     "solution",
                     "action",
-                    "recommended_action"
+                    "recommended_action",
                 ],
-                ""
+                "",
             )
 
             rows.append(
                 {
-                    "Server": convert_value_for_display(
+                    "server": convert_value_for_display(
                         hostname
                     ),
-                    "OS Family": os_family,
-                    "Operating System": operating_system,
-                    "Requirement ID":
+                    "os_family": os_family,
+                    "operating_system": operating_system,
+                    "requirement_id":
                         convert_value_for_display(
                             requirement_id
                         ),
-                    "Category":
-                        convert_value_for_display(
-                            category
-                        ),
-                    "Requirement":
+                    "category":
+                        convert_value_for_display(category),
+                    "requirement":
                         convert_value_for_display(
                             requirement_name
                         ),
-                    "Status": normalize_status(
-                        status
-                    ),
-                    "Expected Value":
+                    "status": status,
+                    "expected_value":
                         convert_value_for_display(
                             expected_value
                         ),
-                    "Actual Value":
+                    "actual_value":
                         convert_value_for_display(
                             actual_value
                         ),
-                    "Evidence / Details":
-                        convert_value_for_display(
-                            evidence
-                        ),
-                    "Recommendation":
+                    "evidence":
+                        convert_value_for_display(evidence),
+                    "recommendation":
                         convert_value_for_display(
                             recommendation
-                        )
+                        ),
                 }
             )
 
@@ -592,10 +550,10 @@ def build_requirement_rows(
 
 
 def count_requirement_statuses(
-    requirement_rows: list[dict]
+    requirement_rows: list[dict[str, Any]],
 ) -> dict[str, int]:
     """
-    Count each compliance status.
+    Count requirement results by normalized status.
     """
 
     counts = {
@@ -604,15 +562,12 @@ def count_requirement_statuses(
         "MANUAL": 0,
         "N/A": 0,
         "UNKNOWN": 0,
-        "OTHER": 0
+        "OTHER": 0,
     }
 
     for row in requirement_rows:
         status = normalize_status(
-            row.get(
-                "Status",
-                "UNKNOWN"
-            )
+            row.get("status", "UNKNOWN")
         )
 
         if status in counts:
@@ -624,13 +579,11 @@ def count_requirement_statuses(
 
 
 def calculate_compliance_score(
-    status_counts: dict[str, int]
+    status_counts: dict[str, int],
 ) -> float:
     """
     Calculate compliance using automatic PASS and FAIL
     results only.
-
-    MANUAL, N/A and UNKNOWN results are excluded.
     """
 
     automatic_checks = (
@@ -645,152 +598,326 @@ def calculate_compliance_score(
         status_counts["PASS"]
         / automatic_checks
         * 100,
-        1
+        1,
     )
 
 
 # ============================================================
-# DASHBOARD COMPONENTS
+# LOCALIZED TABLES
 # ============================================================
 
-def display_application_header() -> None:
+def localize_server_rows(
+    server_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """
-    Display the main application title.
+    Convert internal server inventory rows into translated
+    table columns.
     """
 
-    st.markdown(
-        """
-        <div class="main-header">
-            <h1>🛡️ Enterprise Security Audit Aggregator</h1>
-            <p>
-                Automated Windows and Linux security compliance
-                assessment and enterprise reporting platform
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    localized_rows = []
 
+    for row in server_rows:
+        localized_rows.append(
+            {
+                t("number"): row["number"],
+                t("hostname"): row["hostname"],
+                t("os_family"): translated_os_family(
+                    row["os_family"]
+                ),
+                t("operating_system"):
+                    row["operating_system"],
+                t("ip_address"): row["ip_address"],
+            }
+        )
+
+    return localized_rows
+
+
+def localize_requirement_rows(
+    requirement_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """
+    Convert internal requirement rows into translated table
+    columns and status names.
+    """
+
+    localized_rows = []
+
+    for row in requirement_rows:
+        localized_rows.append(
+            {
+                t("server"): row["server"],
+                t("os_family"): translated_os_family(
+                    row["os_family"]
+                ),
+                t("operating_system"):
+                    row["operating_system"],
+                t("requirement_id"):
+                    row["requirement_id"],
+                t("category"): row["category"],
+                t("requirement"): row["requirement"],
+                t("status"): translated_status(
+                    row["status"]
+                ),
+                t("expected_value"):
+                    row["expected_value"],
+                t("actual_value"):
+                    row["actual_value"],
+                t("evidence"): row["evidence"],
+                t("recommendation"):
+                    row["recommendation"],
+            }
+        )
+
+    return localized_rows
+
+
+# ============================================================
+# INTERFACE COMPONENTS
+# ============================================================
 
 def display_sidebar() -> None:
     """
-    Display application information in the sidebar.
+    Display branding, language selection and application
+    information in the sidebar.
     """
 
     with st.sidebar:
-        st.title("🛡️ ESAA")
-
-        st.caption(
-            "Enterprise Security Audit Aggregator"
+        st.markdown(
+            """
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-title">
+                    🛡️ ESAA
+                </div>
+                <div class="sidebar-brand-subtitle">
+                    Enterprise Security Audit Aggregator
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
         st.markdown("---")
 
-        st.subheader("Application")
-
-        st.write("Version: **1.1.0**")
-        st.write("Status: **Development**")
-
-        st.markdown("---")
-
-        st.subheader("Supported Platforms")
-
-        st.write("🪟 Windows Server")
-        st.write("🐧 Linux Server")
-
-        st.markdown("---")
-
-        st.subheader("Workflow")
-
-        st.write(
-            """
-            1. Upload audit ZIP  
-            2. Discover servers  
-            3. Detect operating systems  
-            4. Evaluate requirements  
-            5. Review dashboard  
-            6. Download Excel report
-            """
+        selected_display_language = st.selectbox(
+            f"🌐 {t('language')}",
+            options=list(LANGUAGE_OPTIONS.keys()),
+            index=list(LANGUAGE_OPTIONS.keys()).index(
+                st.session_state.language_display
+            ),
+            key="language_selector",
         )
+
+        selected_language = LANGUAGE_OPTIONS[
+            selected_display_language
+        ]
+
+        if selected_language != st.session_state.language:
+            st.session_state.language = selected_language
+            st.session_state.language_display = (
+                selected_display_language
+            )
+            st.rerun()
+
+        st.markdown("---")
+
+        st.markdown(
+            (
+                f'<div class="sidebar-section-title">'
+                f'⚙️ {t("application")}'
+                f"</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            (
+                f'<div class="sidebar-item">'
+                f'{t("version")}: <strong>2.0.0</strong>'
+                f"</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            (
+                f'<div class="sidebar-item">'
+                f'Status: <strong>{t("development")}</strong>'
+                f"</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("---")
+
+        st.markdown(
+            (
+                f'<div class="sidebar-section-title">'
+                f'🖥️ {t("supported_platforms")}'
+                f"</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            (
+                f'<div class="sidebar-item">'
+                f'🪟 {t("windows_server")}'
+                f"</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            (
+                f'<div class="sidebar-item">'
+                f'🐧 {t("linux_server")}'
+                f"</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+
+        st.markdown("---")
+
+        st.markdown(
+            (
+                f'<div class="sidebar-section-title">'
+                f'🔄 {t("workflow")}'
+                f"</div>"
+            ),
+            unsafe_allow_html=True,
+        )
+
+        workflow_items = [
+            t("step_upload"),
+            t("step_discover"),
+            t("step_detect"),
+            t("step_evaluate"),
+            t("step_review"),
+            t("step_download"),
+        ]
+
+        for number, item in enumerate(
+            workflow_items,
+            start=1,
+        ):
+            st.markdown(
+                (
+                    f'<div class="sidebar-item">'
+                    f"{number}. {item}"
+                    f"</div>"
+                ),
+                unsafe_allow_html=True,
+            )
 
         if st.session_state.audit_result is not None:
             st.markdown("---")
 
             if st.button(
-                "🗑️ Clear Current Assessment",
-                use_container_width=True
+                f"🗑️ {t('clear_assessment')}",
+                width="stretch",
             ):
                 reset_assessment()
                 st.rerun()
 
 
+def display_header() -> None:
+    """
+    Display the ESAA application header.
+    """
+
+    st.markdown(
+        f"""
+        <div class="esaa-header">
+            <div class="esaa-brand-row">
+                <div class="esaa-logo">🛡️</div>
+                <div>
+                    <h1>{t("app_title")}</h1>
+                    <p>{t("app_subtitle")}</p>
+                </div>
+            </div>
+            <div class="esaa-badge">
+                ESAA · Security Compliance Platform
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def display_upload_section() -> None:
     """
-    Display the ZIP upload and audit execution area.
+    Display the customer information, ZIP upload and
+    assessment execution controls.
     """
 
-    st.subheader("📁 Upload Customer Audit Package")
+    st.markdown(
+        f"""
+        <div class="esaa-section">
+            <div class="esaa-section-title">
+                📁 {t("upload_title")}
+            </div>
+            <div class="esaa-section-description">
+                {t("upload_description")}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.write(
-        """
-        Upload a ZIP package containing security evidence
-        collected from one or more Windows or Linux servers.
-        """
+    customer_name = st.text_input(
+        t("customer_name"),
+        value=st.session_state.customer_name,
+        placeholder=t("customer_placeholder"),
+        help=t("customer_help"),
     )
 
     uploaded_file = st.file_uploader(
-        "Select or drag and drop a ZIP file",
+        t("select_zip"),
         type=["zip"],
-        help=(
-            "The uploaded ZIP package may contain audit "
-            "results from multiple servers."
-        )
+        help=t("upload_help"),
     )
 
     if uploaded_file is None:
-        st.info(
-            "Upload a customer ZIP file to begin the assessment."
-        )
+        st.info(t("upload_information"))
         return
 
-    file_size_mb = uploaded_file.size / (
-        1024 * 1024
-    )
+    file_size_mb = uploaded_file.size / 1024 / 1024
 
-    information_col1, information_col2 = st.columns(
-        2
-    )
+    information_col1, information_col2 = st.columns(2)
 
     information_col1.metric(
-        "Selected File",
-        uploaded_file.name
+        t("selected_file"),
+        uploaded_file.name,
     )
 
     information_col2.metric(
-        "File Size",
-        f"{file_size_mb:.2f} MB"
+        t("file_size"),
+        f"{file_size_mb:.2f} MB",
     )
 
     run_button = st.button(
-        "🚀 Run Security Assessment",
+        f"🚀 {t('run_assessment')}",
         type="primary",
-        use_container_width=True
+        width="stretch",
     )
 
     if not run_button:
         return
 
-    temporary_zip_path = None
+    temporary_zip_path: Path | None = None
 
     try:
         reset_assessment()
 
-        with st.spinner(
-            "Analyzing the customer audit package..."
-        ):
+        st.session_state.customer_name = (
+            customer_name.strip()
+        )
+
+        with st.spinner(t("processing")):
             with tempfile.NamedTemporaryFile(
                 delete=False,
-                suffix=".zip"
+                suffix=".zip",
             ) as temporary_file:
                 temporary_file.write(
                     uploaded_file.getbuffer()
@@ -802,17 +929,14 @@ def display_upload_section() -> None:
 
             result = run_customer_audit(
                 zip_path=temporary_zip_path,
-                output_directory="output"
+                output_directory="output",
             )
 
-            report_path = Path(
-                result["report_path"]
-            )
+            report_path = Path(result["report_path"])
 
             if not report_path.exists():
                 raise FileNotFoundError(
-                    "The assessment completed, but the "
-                    "generated Excel report was not found."
+                    t("report_not_found")
                 )
 
             with report_path.open("rb") as report_file:
@@ -828,52 +952,30 @@ def display_upload_section() -> None:
             )
             st.session_state.last_error = None
 
-        st.success(
-            "Security assessment completed successfully."
-        )
+        st.success(t("completed_successfully"))
 
     except FileNotFoundError as error:
         st.session_state.last_error = str(error)
-
-        st.error(
-            f"File error: {error}"
-        )
+        st.error(f"{t('file_error')}: {error}")
 
     except ValueError as error:
         st.session_state.last_error = str(error)
-
-        st.error(
-            f"Invalid input: {error}"
-        )
+        st.error(f"{t('invalid_input')}: {error}")
 
     except RuntimeError as error:
         st.session_state.last_error = str(error)
-
-        st.error(
-            f"Assessment error: {error}"
-        )
+        st.error(f"{t('assessment_error')}: {error}")
 
     except PermissionError as error:
         st.session_state.last_error = str(error)
-
-        st.error(
-            "The Excel report could not be created. "
-            "Close any open report files and run the "
-            "assessment again."
-        )
-
+        st.error(t("permission_error"))
         st.caption(
-            f"Technical details: {error}"
+            f"{t('technical_details')}: {error}"
         )
 
     except Exception as error:
         st.session_state.last_error = str(error)
-
-        st.error(
-            "An unexpected error occurred while processing "
-            "the audit package."
-        )
-
+        st.error(t("unexpected_error"))
         st.exception(error)
 
     finally:
@@ -886,12 +988,12 @@ def display_upload_section() -> None:
             )
 
 
-def display_overview_metrics(
-    server_rows: list[dict],
-    requirement_rows: list[dict]
+def display_overview(
+    server_rows: list[dict[str, Any]],
+    requirement_rows: list[dict[str, Any]],
 ) -> None:
     """
-    Display the main dashboard metrics.
+    Display the main compliance overview.
     """
 
     status_counts = count_requirement_statuses(
@@ -903,119 +1005,104 @@ def display_overview_metrics(
     )
 
     windows_count = sum(
-        1
+        row["os_family"] == "Windows"
         for row in server_rows
-        if row["OS Family"] == "Windows"
     )
 
     linux_count = sum(
-        1
+        row["os_family"] == "Linux"
         for row in server_rows
-        if row["OS Family"] == "Linux"
     )
 
-    metric_col1, metric_col2, metric_col3 = st.columns(
-        3
-    )
+    metric_col1, metric_col2, metric_col3 = st.columns(3)
 
     metric_col1.metric(
-        "Compliance Score",
-        f"{compliance_score}%"
+        t("compliance_score"),
+        f"{compliance_score}%",
     )
 
     metric_col2.metric(
-        "Servers Evaluated",
-        len(server_rows)
+        t("servers_evaluated"),
+        len(server_rows),
     )
 
     metric_col3.metric(
-        "Requirements Evaluated",
-        len(requirement_rows)
+        t("requirements_evaluated"),
+        len(requirement_rows),
     )
 
     st.progress(
         min(
-            max(
-                compliance_score / 100,
-                0.0
-            ),
-            1.0
+            max(compliance_score / 100, 0.0),
+            1.0,
         )
     )
 
-    st.markdown("#### Platform Summary")
+    st.markdown(f"#### {t('platform_summary')}")
 
     platform_col1, platform_col2, platform_col3 = (
         st.columns(3)
     )
 
     platform_col1.metric(
-        "Windows Servers",
-        windows_count
+        t("windows_servers"),
+        windows_count,
     )
 
     platform_col2.metric(
-        "Linux Servers",
-        linux_count
+        t("linux_servers"),
+        linux_count,
     )
 
     platform_col3.metric(
-        "Unknown Platforms",
-        len(server_rows)
-        - windows_count
-        - linux_count
+        t("unknown_platforms"),
+        (
+            len(server_rows)
+            - windows_count
+            - linux_count
+        ),
     )
 
-    st.markdown("#### Compliance Status")
+    st.markdown(f"#### {t('compliance_status')}")
 
     status_col1, status_col2, status_col3, status_col4 = (
         st.columns(4)
     )
 
     status_col1.metric(
-        "PASS",
-        status_counts["PASS"]
+        t("pass"),
+        status_counts["PASS"],
     )
 
     status_col2.metric(
-        "FAIL",
-        status_counts["FAIL"]
+        t("fail"),
+        status_counts["FAIL"],
     )
 
     status_col3.metric(
-        "MANUAL",
-        status_counts["MANUAL"]
+        t("manual"),
+        status_counts["MANUAL"],
     )
 
     status_col4.metric(
-        "N/A or Unknown",
+        t("na_unknown"),
         (
             status_counts["N/A"]
             + status_counts["UNKNOWN"]
             + status_counts["OTHER"]
-        )
+        ),
     )
 
-
-def display_status_chart(
-    requirement_rows: list[dict]
-) -> None:
-    """
-    Display a compliance status bar chart.
-    """
-
-    status_counts = count_requirement_statuses(
-        requirement_rows
-    )
+    st.markdown(f"#### {t('status_distribution')}")
 
     chart_data = pd.DataFrame(
         {
-            "Status": [
-                "PASS",
-                "FAIL",
-                "MANUAL",
-                "N/A",
-                "UNKNOWN"
+            t("status"): [
+                t("pass"),
+                t("fail"),
+                t("manual"),
+                t("not_applicable"),
+                t("unknown"),
             ],
             "Count": [
                 status_counts["PASS"],
@@ -1025,178 +1112,135 @@ def display_status_chart(
                 (
                     status_counts["UNKNOWN"]
                     + status_counts["OTHER"]
-                )
-            ]
+                ),
+            ],
         }
     )
 
-    st.markdown("#### Requirement Status Distribution")
-
     st.bar_chart(
         chart_data,
-        x="Status",
+        x=t("status"),
         y="Count",
-        use_container_width=True
+        width="stretch",
     )
 
 
 def display_server_inventory(
-    server_rows: list[dict]
+    server_rows: list[dict[str, Any]],
 ) -> None:
     """
-    Display the server inventory table.
+    Display the localized server inventory.
     """
 
-    st.subheader("🖥️ Server Inventory")
+    st.subheader(f"🖥️ {t('server_inventory')}")
 
     if not server_rows:
-        st.warning(
-            "No server inventory information was found."
-        )
+        st.warning(t("no_server_information"))
         return
 
     st.dataframe(
-        server_rows,
-        use_container_width=True,
+        localize_server_rows(server_rows),
+        width="stretch",
         hide_index=True,
-        column_config={
-            "No.": st.column_config.NumberColumn(
-                "No.",
-                width="small"
-            ),
-            "Hostname": st.column_config.TextColumn(
-                "Hostname",
-                width="medium"
-            ),
-            "OS Family": st.column_config.TextColumn(
-                "OS Family",
-                width="small"
-            ),
-            "Operating System":
-                st.column_config.TextColumn(
-                    "Operating System",
-                    width="large"
-                ),
-            "IP Address":
-                st.column_config.TextColumn(
-                    "IP Address",
-                    width="medium"
-                )
-        }
     )
 
 
 def display_requirement_details(
-    requirement_rows: list[dict]
+    requirement_rows: list[dict[str, Any]],
 ) -> None:
     """
-    Display the interactive requirement assessment table.
+    Display requirement details with interactive filters.
     """
 
-    st.subheader("📋 Requirement Assessment Details")
+    st.subheader(f"📋 {t('requirement_details')}")
 
     if not requirement_rows:
-        st.warning(
-            "No requirement details were found in the "
-            "assessment results."
-        )
+        st.warning(t("no_requirement_details"))
         return
 
     server_names = sorted(
-        {
-            row["Server"]
-            for row in requirement_rows
-        }
+        {row["server"] for row in requirement_rows}
     )
 
     os_families = sorted(
-        {
-            row["OS Family"]
-            for row in requirement_rows
-        }
+        {row["os_family"] for row in requirement_rows}
     )
 
     status_values = sorted(
+        {row["status"] for row in requirement_rows}
+    )
+
+    categories = sorted(
         {
-            row["Status"]
+            row["category"]
             for row in requirement_rows
+            if row["category"]
         }
     )
 
-    category_values = sorted(
-        {
-            row["Category"]
-            for row in requirement_rows
-            if row["Category"]
-        }
-    )
+    filter_col1, filter_col2 = st.columns(2)
 
-    filter_row1_col1, filter_row1_col2 = st.columns(
-        2
-    )
-
-    with filter_row1_col1:
+    with filter_col1:
         selected_servers = st.multiselect(
-            "Filter by server",
+            t("filter_server"),
             options=server_names,
-            placeholder="All servers"
+            placeholder=t("all_servers"),
         )
 
-    with filter_row1_col2:
+    with filter_col2:
         selected_statuses = st.multiselect(
-            "Filter by status",
+            t("filter_status"),
             options=status_values,
-            placeholder="All statuses"
+            format_func=translated_status,
+            placeholder=t("all_statuses"),
         )
 
-    filter_row2_col1, filter_row2_col2 = st.columns(
-        2
-    )
+    filter_col3, filter_col4 = st.columns(2)
 
-    with filter_row2_col1:
+    with filter_col3:
         selected_os_families = st.multiselect(
-            "Filter by operating-system family",
+            t("filter_os"),
             options=os_families,
-            placeholder="All platforms"
+            format_func=translated_os_family,
+            placeholder=t("all_platforms"),
         )
 
-    with filter_row2_col2:
+    with filter_col4:
         selected_categories = st.multiselect(
-            "Filter by category",
-            options=category_values,
-            placeholder="All categories",
-            disabled=not category_values
+            t("filter_category"),
+            options=categories,
+            placeholder=t("all_categories"),
+            disabled=not categories,
         )
 
     search_text = st.text_input(
-        "Search requirement details",
-        placeholder=(
-            "Search by requirement ID, name, value, "
-            "evidence or recommendation"
-        )
+        t("search_requirements"),
+        placeholder=t("search_placeholder"),
     )
 
     filtered_rows = []
 
     for row in requirement_rows:
-        server_matches = (
+        matches_server = (
             not selected_servers
-            or row["Server"] in selected_servers
+            or row["server"] in selected_servers
         )
 
-        status_matches = (
+        matches_status = (
             not selected_statuses
-            or row["Status"] in selected_statuses
+            or row["status"] in selected_statuses
         )
 
-        os_matches = (
+        matches_os = (
             not selected_os_families
-            or row["OS Family"] in selected_os_families
+            or row["os_family"]
+            in selected_os_families
         )
 
-        category_matches = (
+        matches_category = (
             not selected_categories
-            or row["Category"] in selected_categories
+            or row["category"]
+            in selected_categories
         )
 
         searchable_text = " ".join(
@@ -1204,160 +1248,107 @@ def display_requirement_details(
             for value in row.values()
         ).lower()
 
-        search_matches = (
+        matches_search = (
             not search_text
-            or search_text.lower() in searchable_text
+            or search_text.lower()
+            in searchable_text
         )
 
         if (
-            server_matches
-            and status_matches
-            and os_matches
-            and category_matches
-            and search_matches
+            matches_server
+            and matches_status
+            and matches_os
+            and matches_category
+            and matches_search
         ):
             filtered_rows.append(row)
 
     result_col1, result_col2 = st.columns(2)
 
     result_col1.metric(
-        "Displayed Requirements",
-        len(filtered_rows)
+        t("displayed_requirements"),
+        len(filtered_rows),
     )
 
     result_col2.metric(
-        "Total Requirements",
-        len(requirement_rows)
+        t("total_requirements"),
+        len(requirement_rows),
     )
 
     if not filtered_rows:
-        st.warning(
-            "No requirements match the selected filters."
-        )
+        st.warning(t("no_filter_results"))
         return
 
     st.dataframe(
-        filtered_rows,
-        use_container_width=True,
+        localize_requirement_rows(filtered_rows),
+        width="stretch",
         hide_index=True,
-        column_config={
-            "Server": st.column_config.TextColumn(
-                "Server",
-                width="medium"
-            ),
-            "OS Family": st.column_config.TextColumn(
-                "OS Family",
-                width="small"
-            ),
-            "Operating System":
-                st.column_config.TextColumn(
-                    "Operating System",
-                    width="medium"
-                ),
-            "Requirement ID":
-                st.column_config.TextColumn(
-                    "Requirement ID",
-                    width="small"
-                ),
-            "Category": st.column_config.TextColumn(
-                "Category",
-                width="medium"
-            ),
-            "Requirement":
-                st.column_config.TextColumn(
-                    "Requirement",
-                    width="large"
-                ),
-            "Status": st.column_config.TextColumn(
-                "Status",
-                width="small"
-            ),
-            "Expected Value":
-                st.column_config.TextColumn(
-                    "Expected Value",
-                    width="medium"
-                ),
-            "Actual Value":
-                st.column_config.TextColumn(
-                    "Actual Value",
-                    width="medium"
-                ),
-            "Evidence / Details":
-                st.column_config.TextColumn(
-                    "Evidence / Details",
-                    width="large"
-                ),
-            "Recommendation":
-                st.column_config.TextColumn(
-                    "Recommendation",
-                    width="large"
-                )
-        }
     )
 
 
 def display_failed_requirements(
-    requirement_rows: list[dict]
+    requirement_rows: list[dict[str, Any]],
 ) -> None:
     """
-    Display only failed requirements requiring remediation.
+    Display requirements whose normalized status is FAIL.
     """
 
-    st.subheader("⚠️ Failed Requirements")
+    st.subheader(f"⚠️ {t('failed_requirements')}")
 
     failed_rows = [
         row
         for row in requirement_rows
-        if row["Status"] == "FAIL"
+        if row["status"] == "FAIL"
     ]
 
     if not failed_rows:
-        st.success(
-            "No failed automatic requirements were found."
-        )
+        st.success(t("no_failed_requirements"))
         return
 
     st.warning(
-        f"{len(failed_rows)} failed requirement(s) "
-        "require review or remediation."
+        t(
+            "failures_require_attention",
+            count=len(failed_rows),
+        )
     )
 
     st.dataframe(
-        failed_rows,
-        use_container_width=True,
-        hide_index=True
+        localize_requirement_rows(failed_rows),
+        width="stretch",
+        hide_index=True,
     )
 
 
 def display_report_download() -> None:
     """
-    Display report information and the Excel download button.
+    Display assessment metadata and the Excel download button.
     """
 
-    st.subheader("📄 Assessment Report")
+    st.subheader(f"📄 {t('assessment_report')}")
 
     if (
         st.session_state.report_bytes is None
         or st.session_state.report_filename is None
     ):
-        st.warning(
-            "No generated report is currently available."
-        )
+        st.warning(t("no_report"))
         return
 
-    report_col1, report_col2 = st.columns(
-        [2, 1]
-    )
+    report_col1, report_col2 = st.columns([2, 1])
 
     with report_col1:
-        st.write(
-            f"**Report file:** "
+        st.markdown(
+            f"**{t('customer_project')}:** "
+            f"{st.session_state.customer_name or t('not_provided')}"
+        )
+
+        st.markdown(
+            f"**{t('report_file')}:** "
             f"{st.session_state.report_filename}"
         )
 
         if st.session_state.uploaded_filename:
-            st.write(
-                f"**Source package:** "
+            st.markdown(
+                f"**{t('source_package')}:** "
                 f"{st.session_state.uploaded_filename}"
             )
 
@@ -1367,14 +1358,14 @@ def display_report_download() -> None:
             / 1024
         )
 
-        st.write(
-            f"**Report size:** "
+        st.markdown(
+            f"**{t('report_size')}:** "
             f"{report_size_mb:.2f} MB"
         )
 
     with report_col2:
         st.download_button(
-            label="⬇️ Download Excel Report",
+            label=f"⬇️ {t('download_report')}",
             data=st.session_state.report_bytes,
             file_name=st.session_state.report_filename,
             mime=(
@@ -1382,20 +1373,20 @@ def display_report_download() -> None:
                 "officedocument.spreadsheetml.sheet"
             ),
             type="primary",
-            use_container_width=True
+            width="stretch",
         )
 
 
 def display_assessment_dashboard() -> None:
     """
-    Display all dashboard tabs after a successful assessment.
+    Display all dashboard tabs after a successful audit.
     """
 
     audit_result = st.session_state.audit_result
 
     server_results = audit_result.get(
         "server_results",
-        []
+        [],
     )
 
     server_rows = build_server_inventory_rows(
@@ -1406,9 +1397,16 @@ def display_assessment_dashboard() -> None:
         server_results
     )
 
+    server_count = audit_result.get(
+        "server_count",
+        len(server_rows),
+    )
+
     st.success(
-        f"{audit_result.get('server_count', len(server_rows))} "
-        "server(s) were successfully evaluated."
+        t(
+            "servers_successfully_evaluated",
+            count=server_count,
+        )
     )
 
     (
@@ -1416,33 +1414,25 @@ def display_assessment_dashboard() -> None:
         servers_tab,
         requirements_tab,
         failures_tab,
-        report_tab
+        report_tab,
     ) = st.tabs(
         [
-            "📊 Overview",
-            "🖥️ Servers",
-            "📋 Requirements",
-            "⚠️ Failures",
-            "📄 Report"
+            f"📊 {t('tab_overview')}",
+            f"🖥️ {t('tab_servers')}",
+            f"📋 {t('tab_requirements')}",
+            f"⚠️ {t('tab_failures')}",
+            f"📄 {t('tab_report')}",
         ]
     )
 
     with overview_tab:
-        display_overview_metrics(
+        display_overview(
             server_rows,
-            requirement_rows
-        )
-
-        st.markdown("---")
-
-        display_status_chart(
-            requirement_rows
+            requirement_rows,
         )
 
     with servers_tab:
-        display_server_inventory(
-            server_rows
-        )
+        display_server_inventory(server_rows)
 
     with requirements_tab:
         display_requirement_details(
@@ -1464,20 +1454,17 @@ def display_assessment_dashboard() -> None:
 
 def main() -> None:
     """
-    Start the Streamlit application.
+    Start the ESAA Streamlit application.
     """
 
     initialize_session_state()
-
+    apply_application_theme()
     display_sidebar()
-
-    display_application_header()
-
+    display_header()
     display_upload_section()
 
     if st.session_state.audit_result is not None:
         st.markdown("---")
-
         display_assessment_dashboard()
 
 
