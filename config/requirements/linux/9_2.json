@@ -1,0 +1,16 @@
+{
+    "requirement": "9.2",
+    "description": "Linux authentication log retention configuration",
+    "checks": [
+        {
+            "key": "AUTH_LOG_CONFIGURED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "AUTH_LOG_RETENTION_WEEKS",
+            "operator": "greater_than_or_equal",
+            "expected": 52
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+2026-07-22T00:44:06.019055+00:00 ip-172-31-41-116 useradd[557]: add 'ubuntu' to group 'dip'
+2026-07-22T00:44:06.019059+00:00 ip-172-31-41-116 useradd[557]: add 'ubuntu' to group 'lxd'
+2026-07-22T00:44:06.019064+00:00 ip-172-31-41-116 useradd[557]: add 'ubuntu' to shadow group 'adm'
+2026-07-22T00:44:06.019068+00:00 ip-172-31-41-116 useradd[557]: add 'ubuntu' to shadow group 'cdrom'
+2026-07-22T00:44:06.019073+00:00 ip-172-31-41-116 useradd[557]: add 'ubuntu' to shadow group 'sudo'
+2026-07-22T00:44:06.019077+00:00 ip-172-31-41-116 useradd[557]: add 'ubuntu' to shadow group 'dip'
+2026-07-22T00:44:06.019083+00:00 ip-172-31-41-116 useradd[557]: add 'ubuntu' to shadow group 'lxd'
+2026-07-22T01:05:37.431736+00:00 ip-172-31-41-116 sudo:     root : TTY=pts/1 ; PWD=/root ; USER=root ; COMMAND=/usr/sbin/auditctl -a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/useradd -k acct_mgmt
+2026-07-22T01:05:37.444365+00:00 ip-172-31-41-116 sudo:     root : TTY=pts/1 ; PWD=/root ; USER=root ; COMMAND=/usr/sbin/auditctl -a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/usermod -k acct_mgmt
+2026-07-22T01:05:37.456285+00:00 ip-172-31-41-116 sudo:     root : TTY=pts/1 ; PWD=/root ; USER=root ; COMMAND=/usr/sbin/auditctl -a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/userdel -k acct_mgmt

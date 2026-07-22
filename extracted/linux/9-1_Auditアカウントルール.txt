@@ -1,0 +1,3 @@
+-a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/useradd -F key=acct_mgmt
+-a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/usermod -F key=acct_mgmt
+-a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/userdel -F key=acct_mgmt

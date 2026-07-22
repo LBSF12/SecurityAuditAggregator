@@ -1,0 +1,71 @@
+System audit policy
+Category/Subcategory                      Setting
+System
+  Security System Extension               No Auditing
+  System Integrity                        No Auditing
+  IPsec Driver                            No Auditing
+  Other System Events                     No Auditing
+  Security State Change                   No Auditing
+Logon/Logoff
+  Logon                                   Success and Failure
+  Logoff                                  Success and Failure
+  Account Lockout                         Success and Failure
+  IPsec Main Mode                         No Auditing
+  IPsec Quick Mode                        No Auditing
+  IPsec Extended Mode                     No Auditing
+  Special Logon                           Success and Failure
+  Other Logon/Logoff Events               Success and Failure
+  Network Policy Server                   No Auditing
+  User / Device Claims                    Success and Failure
+  Group Membership                        Success and Failure
+  Access Rights                           Success and Failure
+Object Access
+  File System                             No Auditing
+  Registry                                No Auditing
+  Kernel Object                           No Auditing
+  SAM                                     No Auditing
+  Certification Services                  No Auditing
+  Application Generated                   No Auditing
+  Handle Manipulation                     No Auditing
+  File Share                              No Auditing
+  Filtering Platform Packet Drop          No Auditing
+  Filtering Platform Connection           No Auditing
+  Other Object Access Events              No Auditing
+  Detailed File Share                     No Auditing
+  Removable Storage                       No Auditing
+  Central Policy Staging                  No Auditing
+Privilege Use
+  Non Sensitive Privilege Use             Success and Failure
+  Other Privilege Use Events              Success and Failure
+  Sensitive Privilege Use                 Success and Failure
+Detailed Tracking
+  Process Creation                        No Auditing
+  Process Termination                     No Auditing
+  DPAPI Activity                          No Auditing
+  RPC Events                              No Auditing
+  Plug and Play Events                    No Auditing
+  Token Right Adjusted Events             No Auditing
+Policy Change
+  Audit Policy Change                     Success and Failure
+  Authentication Policy Change            Success and Failure
+  Authorization Policy Change             Success and Failure
+  MPSSVC Rule-Level Policy Change         Success and Failure
+  Filtering Platform Policy Change        Success and Failure
+  Other Policy Change Events              Success and Failure
+Account Management
+  Computer Account Management             Success and Failure
+  Security Group Management               Success and Failure
+  Distribution Group Management           Success and Failure
+  Application Group Management            Success and Failure
+  Other Account Management Events         Success and Failure
+  User Account Management                 Success and Failure
+DS Access
+  Directory Service Access                Success and Failure
+  Directory Service Changes               Success and Failure
+  Directory Service Replication           Success and Failure
+  Detailed Directory Service Replication  Success and Failure
+Account Logon
+  Kerberos Service Ticket Operations      Success and Failure
+  Other Account Logon Events              Success and Failure
+  Kerberos Authentication Service         Success and Failure
+  Credential Validation                   Success and Failure

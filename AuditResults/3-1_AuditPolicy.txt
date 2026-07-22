@@ -1,0 +1,71 @@
+System audit policy
+Category/Subcategory                      Setting
+システム
+  セキュリティ システムの拡張                          No Auditing
+  システムの整合性                                Success and Failure
+  IPsec ドライバー                             No Auditing
+  その他のシステム イベント                           Success and Failure
+  セキュリティ状態の変更                             Success
+ログオン/ログオフ
+  ログオン                                    Success and Failure
+  ログオフ                                    Success
+  アカウント ロックアウト                            Success
+  IPsec メイン モード                           No Auditing
+  IPsec クイック モード                          No Auditing
+  IPsec 拡張モード                             No Auditing
+  特殊なログオン                                 Success
+  その他のログオン/ログオフ イベント                      No Auditing
+  ネットワーク ポリシー サーバー                        Success and Failure
+  ユーザー要求/デバイスの信頼性情報                       No Auditing
+  グループ メンバーシップ                            No Auditing
+  アクセス権                                   No Auditing
+オブジェクト アクセス
+  ファイル システム                               No Auditing
+  レジストリ                                   No Auditing
+  カーネル オブジェクト                             No Auditing
+  SAM                                     No Auditing
+  証明書サービス                                 No Auditing
+  生成されたアプリケーション                           No Auditing
+  ハンドル操作                                  No Auditing
+  ファイルの共有                                 No Auditing
+  フィルタリング プラットフォーム パケットのドロップ              No Auditing
+  フィルタリング プラットフォームの接続                     No Auditing
+  その他のオブジェクト アクセス イベント                    No Auditing
+  詳細なファイル共有                               No Auditing
+  リムーバブル記憶域                               No Auditing
+  集約型ポリシー ステージング                          No Auditing
+特権の使用
+  重要でない特権の使用                              No Auditing
+  その他の特権の使用イベント                           No Auditing
+  重要な特権の使用                                No Auditing
+詳細追跡
+  プロセス作成                                  No Auditing
+  プロセス終了                                  No Auditing
+  DPAPI アクティビティ                           No Auditing
+  RPC イベント                                No Auditing
+  プラグ アンド プレイ イベント                        No Auditing
+  トークン権限調整済みイベント                          No Auditing
+ポリシーの変更
+  ポリシーの変更の監査                              Success
+  ポリシーの変更の認証                              Success
+  ポリシーの変更の承認                              No Auditing
+  MPSSVC ルールレベル ポリシーの変更                   No Auditing
+  フィルタリング プラットフォームのポリシーの変更                No Auditing
+  その他のポリシー変更イベント                          No Auditing
+アカウント管理
+  コンピューター アカウント管理                         No Auditing
+  セキュリティ グループ管理                           Success
+  配布グループの管理                               No Auditing
+  アプリケーション グループの管理                        No Auditing
+  その他のアカウント管理イベント                         No Auditing
+  ユーザー アカウント管理                            Success
+DS アクセス
+  ディレクトリ サービス アクセス                        No Auditing
+  ディレクトリ サービスの変更                          No Auditing
+  ディレクトリ サービスのレプリケーション                    No Auditing
+  詳細なディレクトリ サービス レプリケーション                 No Auditing
+アカウント ログオン
+  Kerberos サービス チケット操作                    No Auditing
+  その他のアカウント ログオン イベント                     No Auditing
+  Kerberos 認証サービス                         No Auditing
+  資格情報の確認                                 No Auditing

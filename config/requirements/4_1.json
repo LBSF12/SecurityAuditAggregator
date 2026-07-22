@@ -1,0 +1,31 @@
+{
+    "requirement": "4.1",
+    "description": "Password Policy",
+    "checks": [
+        {
+            "key": "MinimumPasswordLength",
+            "operator": "greater_than_or_equal",
+            "expected": 16
+        },
+        {
+            "key": "PasswordComplexity",
+            "operator": "equals",
+            "expected": 1
+        },
+        {
+            "key": "MaximumPasswordAge",
+            "operator": "less_than_or_equal",
+            "expected": 60
+        },
+        {
+            "key": "PasswordHistorySize",
+            "operator": "greater_than_or_equal",
+            "expected": 3
+        },
+        {
+            "key": "LockoutBadCount",
+            "operator": "less_than_or_equal",
+            "expected": 3
+        }
+    ]
+}

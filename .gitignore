@@ -1,0 +1,54 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment and secret files
+.env
+.env.*
+*.env
+
+# IDE settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary processing folders
+temp/
+tmp/
+
+# Customer input files
+input/*
+!input/.gitkeep
+
+# Generated reports
+output/*
+!output/.gitkeep
+
+# ZIP files
+*.zip
+
+# Excel files
+*.xlsx
+*.xls
+
+# Logs
+*.log
+
+# Test and coverage cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution and build files
+build/
+dist/
+*.egg-info/

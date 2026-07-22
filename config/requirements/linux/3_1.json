@@ -1,0 +1,21 @@
+{
+    "requirement": "3.1",
+    "description": "Linux audit log retention configuration",
+    "checks": [
+        {
+            "key": "AUDITD_ROTATION_ENABLED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "AUDITD_NUM_LOGS",
+            "operator": "greater_than_or_equal",
+            "expected": 52
+        },
+        {
+            "key": "LOGROTATE_RETENTION_WEEKS",
+            "operator": "greater_than_or_equal",
+            "expected": 52
+        }
+    ]
+}

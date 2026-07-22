@@ -1,0 +1,11 @@
+{
+    "requirement": "9.1",
+    "description": "Account creation, modification, deletion, and password reset auditing",
+    "checks": [
+        {
+            "key": "USER_ACCOUNT_MANAGEMENT",
+            "operator": "equals",
+            "expected": "Success and Failure"
+        }
+    ]
+}

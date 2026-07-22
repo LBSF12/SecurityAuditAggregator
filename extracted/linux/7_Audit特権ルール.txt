@@ -1,0 +1,2 @@
+-a always,exit -F arch=b64 -S execve -F exe=/usr/bin/su -F key=priv_esc
+-a always,exit -F arch=b64 -S execve -F exe=/usr/bin/sudo -F key=priv_esc

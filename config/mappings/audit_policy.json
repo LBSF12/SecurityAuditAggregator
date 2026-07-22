@@ -1,0 +1,31 @@
+{
+    "LOGON": {
+        "aliases": [
+            "Logon",
+            "ログオン"
+        ]
+    },
+
+    "USER_ACCOUNT_MANAGEMENT": {
+        "aliases": [
+            "User Account Management",
+            "ユーザー アカウント管理",
+            "ユーザー アカウントの管理"
+        ]
+    },
+
+    "AUDIT_POLICY_CHANGE": {
+        "aliases": [
+            "Audit Policy Change",
+            "ポリシーの変更の監査",
+            "監査ポリシーの変更"
+        ]
+    },
+
+    "SENSITIVE_PRIVILEGE_USE": {
+        "aliases": [
+            "Sensitive Privilege Use",
+            "重要な特権の使用"
+        ]
+    }
+}

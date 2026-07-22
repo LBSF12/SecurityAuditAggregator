@@ -1,0 +1,26 @@
+{
+    "requirement": "9.1",
+    "description": "Linuxアカウント管理ログ監査",
+    "checks": [
+        {
+            "key": "USERADD_AUDIT_ENABLED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "USERMOD_AUDIT_ENABLED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "USERDEL_AUDIT_ENABLED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "ACCOUNT_LOG_SAMPLE_EXISTS",
+            "operator": "equals",
+            "expected": true
+        }
+    ]
+}

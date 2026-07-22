@@ -1,0 +1,21 @@
+{
+    "requirement": "9.2",
+    "description": "Security log retention configuration",
+    "checks": [
+        {
+            "key": "LOG_ENABLED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "RETENTION",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "MAX_SIZE_CONFIGURED",
+            "operator": "equals",
+            "expected": true
+        }
+    ]
+}

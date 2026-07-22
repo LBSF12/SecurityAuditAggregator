@@ -1,0 +1,25 @@
+{
+    "LOGON": {
+        "en": "Logon",
+        "ja": "ログオン",
+        "required": "Success and Failure"
+    },
+
+    "USER_ACCOUNT_MANAGEMENT": {
+        "en": "User Account Management",
+        "ja": "ユーザー アカウントの管理",
+        "required": "Success and Failure"
+    },
+
+    "AUDIT_POLICY_CHANGE": {
+        "en": "Audit Policy Change",
+        "ja": "監査ポリシーの変更",
+        "required": "Success and Failure"
+    },
+
+    "SENSITIVE_PRIVILEGE_USE": {
+        "en": "Sensitive Privilege Use",
+        "ja": "機密性の高い特権の使用",
+        "required": "Success and Failure"
+    }
+}

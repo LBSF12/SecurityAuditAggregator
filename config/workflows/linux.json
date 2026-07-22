@@ -1,0 +1,50 @@
+{
+    "3.1": {
+        "parser": "linux_retention",
+        "requirement": "config/requirements/linux/3_1.json",
+        "files": [
+            "3-1_Auditd保持設定.txt",
+            "3-1_Logrotate保持設定.txt"
+        ]
+    },
+
+    "4.1": {
+        "parser": "linux_password_policy",
+        "requirement": "config/requirements/linux/4_1.json",
+        "files": [
+            "4-1_PAM設定確認.txt",
+            "4-1_パスワードポリシー設定.txt"
+        ]
+    },
+
+    "4.2": {
+        "manual": true,
+        "description": "禁止ワードが顧客要件の全項目を満たすか手動確認が必要"
+    },
+
+    "7": {
+        "parser": "linux_privileged_audit",
+        "requirement": "config/requirements/linux/7.json",
+        "files": [
+            "7_Audit特権ルール.txt",
+            "7_Sudoログ設定.txt"
+        ]
+    },
+
+    "9.1": {
+        "parser": "linux_account_audit",
+        "requirement": "config/requirements/linux/9_1.json",
+        "files": [
+            "9-1_Auditアカウントルール.txt",
+            "9-1_認証ログサンプル.txt"
+        ]
+    },
+
+    "9.2": {
+        "parser": "linux_auth_log_retention",
+        "requirement": "config/requirements/linux/9_2.json",
+        "files": [
+            "9-2_認証ログ保持設定.txt"
+        ]
+    }
+}

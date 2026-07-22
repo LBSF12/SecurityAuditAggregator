@@ -1,0 +1,53 @@
+{
+    "3.1": {
+        "parser": "audit_policy",
+        "mapping": "config/mappings/audit_policy.json",
+        "requirement": "config/requirements/3_1.json",
+        "files": [
+            "3-1_AuditPolicy.txt"
+        ]
+    },
+
+    "4.1": {
+        "parser": "password_policy",
+        "mapping": "config/mappings/password_policy.json",
+        "requirement": "config/requirements/4_1.json",
+        "files": [
+            "4-1_LocalPasswordPolicy.txt",
+            "4-1_SecurityPolicy.inf",
+            "4-1_DomainPasswordPolicy.txt"
+        ]
+    },
+
+    "4.2": {
+        "manual": true
+    },
+
+    "7": {
+        "parser": "audit_policy",
+        "mapping": "config/mappings/audit_policy.json",
+        "requirement": "config/requirements/7.json",
+        "files": [
+            "7_PrivilegedAuditPolicy.txt"
+        ]
+    },
+
+    "9.1": {
+        "parser": "audit_policy",
+        "mapping": "config/mappings/audit_policy.json",
+        "requirement": "config/requirements/9_1.json",
+        "files": [
+            "9-1_AccountManagementAudit.txt",
+            "9-1_PasswordReset_AuditPolicy.txt"
+        ]
+    },
+
+    "9.2": {
+        "parser": "log_retention",
+        "requirement": "config/requirements/9_2.json",
+        "files": [
+            "9-2_SecurityLogConfiguration.txt"
+        ]
+    }
+
+}

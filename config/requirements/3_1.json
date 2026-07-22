@@ -1,0 +1,29 @@
+{
+    "requirement": "3.1",
+
+    "description": "Audit Log Collection",
+
+    "checks": [
+
+        {
+            "key": "LOGON",
+            "expected": "Success and Failure"
+        },
+
+        {
+            "key": "USER_ACCOUNT_MANAGEMENT",
+            "expected": "Success and Failure"
+        },
+
+        {
+            "key": "AUDIT_POLICY_CHANGE",
+            "expected": "Success and Failure"
+        },
+
+        {
+            "key": "SENSITIVE_PRIVILEGE_USE",
+            "expected": "Success and Failure"
+        }
+
+    ]
+}

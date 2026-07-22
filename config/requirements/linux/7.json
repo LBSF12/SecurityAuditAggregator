@@ -1,0 +1,21 @@
+{
+    "requirement": "7",
+    "description": "Linux特権アカウント利用監査",
+    "checks": [
+        {
+            "key": "SU_AUDIT_ENABLED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "SUDO_AUDIT_ENABLED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "PRIVILEGE_AUDIT_KEY_CONFIGURED",
+            "operator": "equals",
+            "expected": true
+        }
+    ]
+}

@@ -1,0 +1,41 @@
+{
+    "requirement": "4.1",
+    "description": "Linuxパスワードポリシー",
+    "checks": [
+        {
+            "key": "PAM_PWQUALITY_ENABLED",
+            "operator": "equals",
+            "expected": true
+        },
+        {
+            "key": "MINIMUM_PASSWORD_LENGTH",
+            "operator": "greater_than_or_equal",
+            "expected": 16
+        },
+        {
+            "key": "DIGIT_CREDIT",
+            "operator": "less_than_or_equal",
+            "expected": -1
+        },
+        {
+            "key": "UPPERCASE_CREDIT",
+            "operator": "less_than_or_equal",
+            "expected": -1
+        },
+        {
+            "key": "LOWERCASE_CREDIT",
+            "operator": "less_than_or_equal",
+            "expected": -1
+        },
+        {
+            "key": "OTHER_CHARACTER_CREDIT",
+            "operator": "less_than_or_equal",
+            "expected": -1
+        },
+        {
+            "key": "PASSWORD_HISTORY",
+            "operator": "greater_than_or_equal",
+            "expected": 3
+        }
+    ]
+}

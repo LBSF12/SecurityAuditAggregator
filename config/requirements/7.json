@@ -1,0 +1,11 @@
+{
+    "requirement": "7",
+    "description": "特権アカウントの利用に関する監査設定が有効であること",
+    "checks": [
+        {
+            "key": "SENSITIVE_PRIVILEGE_USE",
+            "operator": "equals",
+            "expected": "Success and Failure"
+        }
+    ]
+}

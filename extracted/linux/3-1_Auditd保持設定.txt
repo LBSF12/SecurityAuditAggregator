@@ -1,0 +1,3 @@
+max_log_file = 100
+num_logs = 52
+max_log_file_action = ROTATE
