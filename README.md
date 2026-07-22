@@ -158,6 +158,10 @@ Symbols:
   △        Manual
   －       Not Implemented
 
+![Overview](docs/images/home.png)
+![Security Assessment](docs/images/home2.png)
+![Report Download](docs/images/download.png)
+
 ## Roadmap
 
 Completed: - Windows support - Linux support - Excel reporting -
@@ -166,6 +170,7 @@ Multi-server processing - OS detection
 Planned: - Streamlit UI - HTML dashboard - PDF reports - AI
 remediation - Azure integration - SharePoint integration - Docker - REST
 API
+
 
 ## Author
 
