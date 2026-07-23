@@ -1,0 +1,18 @@
+services:
+  esaa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: esaa:1.0
+    container_name: esaa
+
+    ports:
+      - "8501:8501"
+
+    volumes:
+      - ./output:/app/output
+
+    restart: unless-stopped
+
+    init: true
